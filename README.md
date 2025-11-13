@@ -195,7 +195,7 @@ pickle-mixin
 ## 👨‍💻 Developer
 
 **Your Name**
-📧 [yourname@email.com](mailto:abhay.kr2803@gmail.com)
+📧 [Abhay_Kumar](mailto:abhay.kr2803@gmail.com)
 💼 [LinkedIn](https://www.linkedin.com/in/abhay-kumar-117b4327b/)
 🌐 [GitHub](https://github.com/ak-0283)
 
