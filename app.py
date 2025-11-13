@@ -5,7 +5,13 @@ import pickle
 import cv2
 from PIL import Image
 import os
+import keras  # ✅
 
+# --- Register custom Lambda function used in HybridNet ---
+@keras.saving.register_keras_serializable()
+def grayscale_to_rgb(img):
+    """Custom grayscale → RGB converter for deserialization."""
+    return tf.image.grayscale_to_rgb(img)
 # ---------------------------
 # PAGE CONFIGURATION
 # ---------------------------
@@ -19,32 +25,53 @@ st.set_page_config(
 # LOAD ALL MODELS
 # ---------------------------
 @st.cache_resource
-def load_all_models(model_dir="models"):
-    """Load all available CNN models and handle both RGB and grayscale models."""
-    model_names = ["VGG16", "ResNet50", "InceptionV3", "EfficientNetB0"]
+def load_all_models():
+    """Load pretrained, custom, and hybrid CNN models dynamically."""
+    model_folders = {
+        "VGG16": "models",
+        "ResNet50": "models",
+        "InceptionV3": "models",
+        "EfficientNetB0": "models",
+        "HybridNet": "models/hybrid",
+        "CustomCNN": "models/custom"
+    }
+
     models, metadata, available = {}, {}, []
 
     st.subheader("📦 Model Loading Status")
 
-    for name in model_names:
-        model_path = os.path.join(model_dir, f"{name}_emotion_model.keras")
-        meta_path = os.path.join(model_dir, f"{name}_metadata.pkl")
+    for name, folder in model_folders.items():
+        model_path = os.path.join(folder, f"{name}_emotion_model.keras")
+        meta_path = os.path.join(folder, f"{name}_metadata.pkl")
+
+        # For your fixed HybridNet file
+        if name == "HybridNet":
+            model_path = os.path.join(folder, "HybridNet_emotion_model_FIXED.keras")
 
         st.write(f"🔍 **Checking:** `{model_path}`")
 
-        if os.path.exists(model_path) and os.path.exists(meta_path):
+        if os.path.exists(model_path):
             try:
-                model = tf.keras.models.load_model(model_path, compile=False)
+                # ✅ HybridNet uses safe_mode=False to allow custom grayscale model
+                if name == "HybridNet":
+                    tf.keras.config.enable_unsafe_deserialization()
+                    model = tf.keras.models.load_model(model_path, compile=False, safe_mode=False)
+                else:
+                    model = tf.keras.models.load_model(model_path, compile=False)
+
                 input_shape = model.input_shape
 
-                with open(meta_path, "rb") as f:
-                    meta = pickle.load(f)
+                if os.path.exists(meta_path):
+                    with open(meta_path, "rb") as f:
+                        meta = pickle.load(f)
+                else:
+                    meta = {"emotion_labels": ["angry", "disgust", "fear", "happy", "sad", "surprise", "neutral"]}
 
                 models[name] = model
                 metadata[name] = meta
                 available.append(name)
 
-                # Display success in main area
+                # Info message per model
                 if input_shape[-1] == 3:
                     st.success(f"✅ Loaded **{name}** successfully! (RGB mode)")
                 elif input_shape[-1] == 1:
@@ -57,16 +84,14 @@ def load_all_models(model_dir="models"):
             except Exception as e:
                 st.error(f"❌ Error loading **{name}**: {e}")
         else:
-            st.warning(f"⚠️ Missing files for **{name}**. Check your 'models' folder.")
+            st.warning(f"⚠️ Missing files for **{name}**. Check your '{folder}' folder.")
 
     if not available:
-        st.error("🚫 No valid models loaded — check your model folder.")
+        st.error("🚫 No valid models loaded — check your model folders.")
     else:
         st.success(f"🎉 Successfully loaded {len(available)} models: {', '.join(available)}")
 
     return models, metadata, available
-
-
 
 
 # Button to reload models dynamically
@@ -76,9 +101,8 @@ if st.sidebar.button("🔄 Reload Models"):
 
 models, metadata, available_models = load_all_models()
 
-
 # ---------------------------
-# IMAGE PREPROCESSING (supports RGB + Grayscale)
+# IMAGE PREPROCESSING
 # ---------------------------
 def preprocess_image(img, model_name="VGG16", expected_channels=3):
     """Resize and preprocess image according to model input and expected channels."""
@@ -91,16 +115,26 @@ def preprocess_image(img, model_name="VGG16", expected_channels=3):
     elif model_name == "ResNet50":
         target_size = (224, 224)
         from tensorflow.keras.applications.resnet50 import preprocess_input
-    else:
+    elif model_name == "VGG16":
         target_size = (224, 224)
         from tensorflow.keras.applications.vgg16 import preprocess_input
+    elif model_name == "HybridNet":
+        target_size = (224, 224)
+        def preprocess_input(x): return x / 255.0
+        expected_channels = 1  # ✅ Force grayscale for HybridNet
+    elif model_name == "CustomCNN":
+        target_size = (128, 128)
+        def preprocess_input(x): return x / 255.0
+    else:
+        target_size = (224, 224)
+        def preprocess_input(x): return x / 255.0
 
-    # Handle grayscale or RGB
+    # Handle grayscale or RGB conversion
     if expected_channels == 1:
-        img = img.convert("L")  # convert to grayscale
+        img = img.convert("L")
         img = img.resize(target_size)
         img_array = np.array(img).astype("float32")
-        img_array = np.expand_dims(img_array, axis=-1)  # add channel dimension
+        img_array = np.expand_dims(img_array, axis=-1)
     else:
         img = img.convert("RGB")
         img = img.resize(target_size)
@@ -108,7 +142,6 @@ def preprocess_image(img, model_name="VGG16", expected_channels=3):
 
     img_array = np.expand_dims(img_array, axis=0)
     return preprocess_input(img_array)
-
 
 # ---------------------------
 # PREDICTION FUNCTION
@@ -120,13 +153,11 @@ def predict_emotion(model, meta, image_array):
     confidence = preds[0][idx] * 100
     return emotion, confidence
 
-
 # ---------------------------
 # SIDEBAR NAVIGATION
 # ---------------------------
 st.sidebar.title("🧭 Navigation")
 page = st.sidebar.radio("Go to", ["🏠 Home", "ℹ️ About", "😊 Detection", "📞 Contact"])
-
 
 # ---------------------------
 # HOME PAGE
@@ -134,18 +165,19 @@ page = st.sidebar.radio("Go to", ["🏠 Home", "ℹ️ About", "😊 Detection",
 if page == "🏠 Home":
     st.title("🎭 Emotion Detection using Deep Learning")
     st.markdown("""
-    Welcome to the **Emotion Detection App** — powered by **4 pretrained CNN models**:
+    Welcome to the **Emotion Detection App** — powered by **6 CNN models**:
     - 🧠 VGG16  
     - ⚡ ResNet50  
     - 🔍 InceptionV3  
     - 🌿 EfficientNetB0  
+    - 🧩 HybridNet (Custom + Pretrained Fusion, Grayscale trained)  
+    - 🧱 CustomCNN  
 
     Detect emotions such as **happy**, **sad**, **angry**, **neutral**, **fear**, **disgust**, and **surprise**  
     from static images or live webcam input.
 
     👉 Use the sidebar to navigate between pages.
     """)
-
 
 # ---------------------------
 # ABOUT PAGE
@@ -156,10 +188,9 @@ elif page == "ℹ️ About":
     This web app uses **TensorFlow**, **Keras**, and **Streamlit** to detect facial emotions.
 
     ### 🧠 Models Used
-    - **VGG16:** Classic CNN baseline (RGB)
-    - **ResNet50:** Deep residual network (RGB)
-    - **InceptionV3:** Multi-scale CNN (RGB)
-    - **EfficientNetB0:** Compact, grayscale-trained CNN (1-channel)
+    - **VGG16**, **ResNet50**, **InceptionV3**, **EfficientNetB0** (Transfer Learning)
+    - **HybridNet:** Fusion model trained on grayscale images
+    - **CustomCNN:** Trained from scratch on FER-2013 dataset
 
     ### 🎯 Features
     - Upload an image for prediction  
@@ -169,7 +200,6 @@ elif page == "ℹ️ About":
     Dataset: **FER-2013 (Facial Expression Recognition)**  
     Includes 7 emotions: happy, sad, angry, neutral, fear, disgust, surprise
     """)
-
 
 # ---------------------------
 # DETECTION PAGE
@@ -215,13 +245,11 @@ elif page == "😊 Detection":
             st.info("Press 'Stop' in Streamlit toolbar to stop webcam feed.")
             cap = cv2.VideoCapture(0)
             stframe = st.empty()
-            face_cascade = cv2.CascadeClassifier(
-                cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-            )
+            face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
 
-            model_name = "EfficientNetB0"  # Default webcam model
+            model_name = "HybridNet"  # Default model for live feed
             if model_name not in models:
-                st.error("❌ EfficientNetB0 not loaded. Cannot start webcam detection.")
+                st.error("❌ HybridNet not loaded. Cannot start webcam detection.")
             else:
                 expected_channels = models[model_name].input_shape[-1]
 
@@ -247,7 +275,6 @@ elif page == "😊 Detection":
                     stframe.image(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
 
                 cap.release()
-
 
 # ---------------------------
 # CONTACT PAGE
