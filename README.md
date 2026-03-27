@@ -149,9 +149,17 @@ Key components:
 
 ## 🖼️ Screenshots
 
-| Upload Mode                                                                                          | Live Webcam Mode                                                                                     |
-| ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| ![Upload](https://github.com/yourusername/Emotion-Detection-Minor-Project/assets/upload-preview.png) | ![Webcam](https://github.com/yourusername/Emotion-Detection-Minor-Project/assets/webcam-preview.png) |
+### 🏠 Home Page
+![Home Page](https://github.com/ak-0283/Emotion-Detection-Minor-Project/blob/main/Screenshots/home.png?raw=true)
+
+### ℹ️ About Page
+![About Page](https://github.com/ak-0283/Emotion-Detection-Minor-Project/blob/main/Screenshots/about.png?raw=true)
+
+### 😊 Detection Page
+![Detection Page](https://github.com/ak-0283/Emotion-Detection-Minor-Project/blob/main/Screenshots/detection.png?raw=true)
+
+### 📞 Contact Page
+![Contact Page](https://github.com/ak-0283/Emotion-Detection-Minor-Project/blob/main/Screenshots/contact.png?raw=true)
 
 ---
 
