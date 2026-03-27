@@ -6,6 +6,8 @@
 
 This project detects human emotions such as 😄 **happy**, 😡 **angry**, 😢 **sad**, 😨 **fear**, 😕 **disgust**, 😮 **surprise**, and 😐 **neutral** from facial images or live webcam feeds — using **six deep learning models** trained on the FER-2013 dataset.
 
+> 🎓 This repository is developed as a **BCA 5th Semester Major Project**.
+
 ---
 
 ## 🚀 Features
@@ -198,6 +200,11 @@ pickle-mixin
 📧 [Gmail](mailto:abhay.kr2803@gmail.com)
 💼 [LinkedIn](https://www.linkedin.com/in/abhay-kumar-117b4327b/)
 🌐 [GitHub](https://github.com/ak-0283)
+
+### 🤝 Project Credit
+
+* **Friend Contributor**
+* GitHub: [@friend-github-id](https://github.com/Suraj-chetri08)
 
 <div align="center">
   <h2 style="font-size:3rem;">Our Contributors <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Red%20Heart.png" alt="Red Heart" width="40" height="40" /></h2>
