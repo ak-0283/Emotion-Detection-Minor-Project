@@ -1,3 +1,5 @@
+![](https://github.com/ak-0283/Emotion-Detection-Minor-Project/blob/main/Screenshots/home.png?raw=true)
+
 ## 🎭 Emotion Detection 
 
 <!-- ![Emotion Detection Banner](https://github.com/yourusername/Emotion-Detection-Minor-Project/assets/banner-placeholder.png) -->
